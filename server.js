@@ -2,13 +2,31 @@ const express = require('express');
 const app = express();
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
+const cors = require('cors');
+const fs = require('fs');
+const path =require('path');
+
+
+//configure cors
+app.use(cors({
+    origin: 'http://localhost:5173', // Allow all origins
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allow specific HTTP methods
+    allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
+    credentials: true
+}));
+
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
 
 //configure dotenv
 dotenv.config({ path: './config/config.env' });
 
-//configure express to receive json data
+// Increase the payload limit to 10MB (adjust as needed)
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const hostname = process.env.HOST_NAME;
 const port = process.env.PORT;

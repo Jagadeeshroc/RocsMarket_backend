@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router()
 const Product = require('../models/product');
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
 
 // Define a route to get all products
@@ -33,8 +35,10 @@ router.get('/products/:id', async (req, res) => {
 // Define a route to create a new product
 
 
-    router.post('/products', async (req, res) => {
+router.post('/products', upload.single('productImage'), async (req, res) => {
         try {
+            console.log('Request body:', req.body);
+            console.log('Uploaded file:', req.file);
           const product = new Product({
             productName:        req.body.productName,
             productDescription: req.body.productDescription,
@@ -44,18 +48,15 @@ router.get('/products/:id', async (req, res) => {
             productBrand:       req.body.productBrand,
             productColor:       req.body.productColor,
             productSize:        req.body.productSize,
-            productQuantity:    req.body.productQuantity,
-      
-            // 🔽 INCLUDE THESE 🔽
-            productCondition:    req.body.productCondition,
-            productAvailability: req.body.productAvailability,
-            productReturnPolicy: req.body.productReturnPolicy,
-            productShipping:     req.body.productShipping,
-            productWarranty:     req.body.productWarranty,
-            productDiscount:     req.body.productDiscount,
-            productReviews:      req.body.productReviews,
-            productRating:       req.body.productRating,
-            productStock:        req.body.productStock,
+            productQuantity: req.body.productQuantity || 1,
+            productCondition: req.body.productCondition || 'new',
+            productAvailability: req.body.productAvailability || 'in stock',
+            productReturnPolicy: req.body.productReturnPolicy || '30-day returns',
+            productShipping: req.body.productShipping || 'Free standard shipping',
+            productWarranty: req.body.productWarranty || '1 year',
+            productDiscount: req.body.productDiscount || 0,
+            productStock: req.body.productStock || 1,
+            productRating: req.body.productRating || 0
           });
       
           const savedProduct = await product.save();
@@ -100,13 +101,22 @@ Product.findByIdAndDelete(req.params.id);
 // Define a route to get products by category
 router.get('/products/category/:category', async (req, res) => {
     try {
-        const products = await Product.find({ productCategory: req.params.category });
+        const rawCategory = req.params.category;
+        const decodedCategory = decodeURIComponent(rawCategory); // 👈 Decode %2C → ,
+        const categories = decodedCategory.split(',')
+            .map(cat => cat.trim().toLowerCase());
+
+        const products = await Product.find({
+            productCategory: { $in: categories }
+        });
+
         res.status(200).json(products);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error:', error);
+        res.status(500).json({ message: 'Server error' });
     }
-}
-);
+});
+
 // Define a route to get products by brand
 router.get('/products/brand/:brand', async (req, res) => {
     try {
